@@ -4,10 +4,15 @@ A nostalgia rebuild of [ELVIRA](https://elvira.mav-start.hu/), the Hungarian Sta
 Railways timetable search that MÁV retired in September 2025 — the original look,
 running on today's schedules and live delays.
 
-**This is built purely for nostalgia.** The interface is dated on purpurse, ELVIRA looked like
+**This is built purely for nostalgia.** The interface is dated on purpose, ELVIRA looked like
 this, it worked like this, and I wanted it back. If you want a modern
 journey planner, use [MÁVPlusz](https://mavplusz.hu/) — this is not trying to compete
 with it.
+
+> **Trains only.** I use this for trains, and that is all it has been tested for. The
+> station list is built from the railway feed, so bus stops are not in it. It is a
+> one-person hobby rebuild, so expect rough edges — if something is wrong or missing,
+> open an issue or a pull request; both are welcome.
 
 **Unofficial.** Not affiliated with MÁV-START Zrt. For anything binding, use the
 official site.
