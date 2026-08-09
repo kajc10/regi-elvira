@@ -1,0 +1,8 @@
+html {margin:0;padding:0;border:0}
+body { font-size: 10pt; background:none; background-color:white; color:inherit; margin:0;padding:0;border:0;width:100%;overflow:visible !important}
+body, div#place, div#contentplace {float:none !important;position:relative;left:0;width:100%;margin:0;padding:0; display:inline}
+#searchtop, #searchbottom, #languages, #head, .morebutton, .rfooter, .noprint , input.gomb, .ysubmit, #jivalaszt, .jegybe, .jegyki { display: none}
+.rtf {overflow:visible !important}
+a { text-decoration: none}
+
+#support img {display:none}

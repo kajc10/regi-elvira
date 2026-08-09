@@ -1,0 +1,81 @@
+/* English wording for the "Kedvezmény" / "Reduction" dropdown.
+ *
+ * The dropdown is period-correct decoration: the public data source carries no
+ * fares, so it is disabled. Both language versions are MÁV's own wording, taken
+ * from the Hungarian and English editions of the archived page — the Hungarian
+ * one lives in index.html, the English one here, keyed by the original option
+ * values so the two stay aligned.
+ */
+
+var ELVIRA_REDUCTION_EN = {
+  groups: {
+      "OG0": "33% discount fare",
+      "OG1": "50% discount fare",
+      "OG2": "90% discount fare",
+      "OG3": "Free",
+      "OG4": "Monthly tickets",
+      "OG5": "Bicycle fare",
+      "OG6": "Tickets which cannot be bought on internet"
+  },
+  options: {
+      "1156": "Full fare",
+      "1262": "Hungary Card holder (one way ticket) (33%)",
+      "1158": "Member of the family (child/children under 18 and the parents)",
+      "1133": "Youth under 26 (Friday 10.00a - Sunday 11.59p)",
+      "1166": "Child under 14",
+      "1155": "Civil service employee",
+      "1186": "Hungarian Pass for foreign (student)",
+      "1564": "Hungary Card holder (one way ticket) (50%)",
+      "1145": "Pensioner - 50% (16 single journeys)",
+      "1129": "START Klub 50% card holder",
+      "1143": "Student in full-time or evening course",
+      "1180": "Student in part-time course - between the place of education and home",
+      "1132": "Attendant of a person eligible for Disability Support",
+      "1153": "Attendant of a person entitled for increased child support",
+      "1181": "Attendant of Person hard of hearing",
+      "1148": "Blind person",
+      "1135": "Blind person's attendant",
+      "1191": "Disabled resident of a social welfare institution",
+      "1149": "Hungarian Pass for foreign (between 6-65 years)",
+      "1140": "Large family discount (parent(s) + min. 3 own children)",
+      "1172": "Pensioner - 90% (2 single journeys)",
+      "1130": "Person entitled for increased child supportt",
+      "1190": "Person hard of hearing",
+      "1160": "Persons eligible for Disability Support",
+      "1157": "The attendant of a disabled resident of a social welfare institution",
+      "1142": "Unemployed (participating in education)",
+      "1168": "Visitor of a disabled resident of a social welfare institution",
+      "1183": "Child under 6",
+      "1189": "Hungarian Pass for foreign (over 65 years)",
+      "1150": "Person having a railway ID card (1. class)",
+      "1185": "Person over 65",
+      "1138": "Person with a railway service card (1st class) for relative/retired",
+      "1159": "Person with a railway service card (2nd class)",
+      "1141": "Person with a railway service card (2nd class) for relative/retired",
+      "1162": "Refugee",
+      "1127": "30 days-pass",
+      "1565": "30-days-pass for bicycle",
+      "1154": "30-days-pass for dogs",
+      "1152": "Half-month pass",
+      "1176": "Month pass",
+      "1136": "Month pass for bicycle",
+      "1165": "Month pass for dogs",
+      "1137": "Students' 30-days-pass",
+      "1178": "Students' half-monthly pass",
+      "1161": "Students' month pass",
+      "1182": "Bicycle ticket",
+      "1173": "Discounted bicycle ticket",
+      "1128": "Pet ticket",
+      "1177": "A member of a students group",
+      "1163": "Attendant of a nursery-school group (min 10 children, 3 attendant by 10 children)",
+      "1179": "Attendant of a students group (of at least 6 children under 10)",
+      "1167": "Attendant of a students group (over 10 years old, one attendant per 10 students)",
+      "1139": "Attendant of travelling groups of Orphans, at least 10 children.",
+      "1164": "Disabled serviceman, war widow",
+      "1184": "Guide dog",
+      "1131": "Hungarian Pass for foreign (group under 18 years)",
+      "1134": "Member of a nursery-school group (min 10 children)",
+      "1170": "Travelling groups of Orphans, at least 10 children.",
+      "1146": "Wheelchairs, carlets for disabled"
+  },
+};

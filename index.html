@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=790">
+
+<title>Régi ELVIRA – vasúti menetrend és útvonaltervező</title>
+<meta name="description" content="A régi ELVIRA menetrendi kereső nosztalgia változata, aktuális magyar vasúti menetrenddel és késési adatokkal.">
+<meta name="robots" content="index, follow">
+
+<link rel="canonical" href="https://holazelvira.hu/">
+
+<meta property="og:type" content="website">
+<meta property="og:locale" content="hu_HU">
+<meta property="og:title" content="Régi ELVIRA – vasúti menetrend és útvonaltervező">
+<meta property="og:description" content="A régi ELVIRA menetrendi kereső nosztalgia változata, aktuális magyar vasúti menetrenddel és késési adatokkal.">
+<meta property="og:url" content="https://holazelvira.hu/">
+
+<link rel="icon" href="img/favicon.ico">
+<link rel="shortcut icon" href="img/favicon.ico" type="image/ico">
+<link rel="stylesheet" type="text/css" href="css/g.css">
+<link rel="stylesheet" type="text/css" media="print" href="css/p.css">
+
+<style type="text/css">
+	/* --- rules that lived inline in the original page --- */
+	body {text-align:center;box-sizing:border-box;-moz-box-sizing:border-box;-webkit-box-sizing:border-box}
+	div#place {margin:0 auto;text-align:left;width:773px}
+	div.xformlabel1, div.xformlabel2 {width:65px;margin:0.3em 0.2em 0.3em 0.2em}
+	div#languages a:link, div#languages a:visited, div#languages a:hover {color:#FFFFFF}
+	div#support {padding-left:0;padding-right:0;margin-top:2em;width:auto}
+	div#support img {border-width:0;margin-left:-6px;vertical-align:middle}
+	div#support .verzio {font-size:x-small}
+	div#footer {padding:0;margin:1em 0;text-align:left}
+	div.rfooter {margin-right:1em}
+	.xformcontrol2 .xinput {width:245px}
+	div.reduceditem {width:49%;height:2em;float:left}
+	div.reducedcontrol input {width:18px}
+	.figyutas {border:2px solid red;padding:1em;background-color:pink;text-align:center}
+
+	/* --- own wordmark where MÁV-START's logo used to be printed on hbg.png ---
+	   Text rather than an image so it follows the language switch. */
+	div#logo a {display:block;text-decoration:none}
+	div#logo .mark {
+		display:block;
+		font:bold 30px Arial, Helvetica, sans-serif;
+		color:#ffffff;
+		line-height:1;
+		padding:6px 0 0 20px;
+		white-space:nowrap;
+	}
+	div#logo .sub {
+		display:block;
+		font:14px Arial, Helvetica, sans-serif;
+		color:#bedcf5;
+		padding:5px 0 0 22px;
+		white-space:nowrap;
+	}
+
+	/* --- keep the semantic H1 visually identical to the original banner --- */
+	div.mavdirekt h1 {
+		font-size:1em;
+		color:#ffffff;
+		font-weight:bold;
+		margin:0;
+		padding:10px 0 0 60px;
+		white-space:nowrap;
+	}
+
+	/* --- MÁV train-category pictogram font, as used by the timetable --- */
+	@font-face {
+		font-family:'MNR2007';
+		src:url('fonts/MNR2007.ttf') format('truetype');
+		font-display:swap;
+	}
+	.MNR2007 {font-family:'MNR2007';font-size:135%;line-height:1;vertical-align:-2px}
+
+	/* --- station autocomplete, styled after the original jQuery UI dropdown --- */
+	div.xformcontrol2 {position:relative}
+	ul.ac-list {
+		display:none;position:absolute;z-index:50;left:6px;top:100%;
+		width:245px;max-height:10em;overflow-y:auto;overflow-x:hidden;
+		margin:0;padding:0;list-style:none;
+		background:#fff;border:1px solid #8BA5BA;
+	}
+	ul.ac-list li {color:black;text-align:left;font-size:9pt;padding:2px 5px;cursor:default;white-space:nowrap}
+	ul.ac-list li.sel {background:#FD841C;color:#fff}
+	ul.ac-list li .m {font-weight:bold}
+
+	/* --- date picker (the original cal.js widget, rebuilt) --- */
+	div.cal td a {display:block;text-decoration:none;color:#0B4D87}
+	div.cal td.s a {color:#FFFFFF}
+	div.cal td.off {background:#F7F7F7}
+	div.cal td.off a {color:#BBBBBB;cursor:default}
+	div.cal .nav a {text-decoration:none;font-weight:bold}
+
+	/* --- the line between trains that have gone and trains still to come --- */
+	div.timetable tr.nowline td {
+		padding:0;border-left:1px solid #C5D5E2;border-right:1px solid #C5D5E2;
+		background:#fff;
+	}
+	div.nowbar {
+		position:relative;height:0;border-top:2px solid #FD841C;
+	}
+	div.nowbar span {
+		position:absolute;right:4px;top:-0.75em;
+		background:#FD841C;color:#fff;font-size:9px;font-weight:bold;
+		padding:1px 5px;white-space:nowrap;
+	}
+
+	/* --- delay marking --- */
+	.lateold {text-decoration:line-through;color:#FF0000}
+	.latenew {color:#FF0000;font-weight:bold}
+	.ontime {color:#177A17}
+
+	/* --- misc --- */
+	div.timetable td.info {width:24px}
+	div.timetable tr.det td {padding:0;border-top:0}
+	div.pager {margin:0 0 1em 0;text-align:center}
+	div.pager input {font-size:11px;margin:0 0.5em}
+	div.loading {padding:2em;text-align:center;color:#195B95;font-size:90%}
+	div.legrow {margin:0.2em 0}
+	div.discl {font-size:70%;color:#777;margin-top:0.7em;text-align:justify}
+	span.trainno {font-weight:bold}
+</style>
+</head>
+
+<body>
+<div id="place">
+
+<div id="head">
+<div id="logo">
+<a href="./">
+<span class="mark" data-i18n="wordmark">régi ELVIRA</span>
+<span class="sub" data-i18n="wordmarkSub">nosztalgia menetrend</span>
+</a>
+</div>
+
+<div id="headbanner">
+<div class="mavdirekt">
+<h1 data-i18n="banner">nosztalgia kiadás<br>nem hivatalos oldal</h1>
+</div>
+</div>
+
+<div id="languages">
+<a href="#" id="lang-hu"><img src="img/HU.gif" alt="">Magyar</a> |
+<a href="#" id="lang-en"><img src="img/EN.gif" alt="">English</a>
+</div>
+
+<div class="clear"></div>
+</div>
+
+<div id="contentplace">
+
+<form name="uff" id="uff" action="#" autocomplete="off">
+
+<div id="searchtop">
+<div class="box1">
+
+<div class="lboxbody1">
+<div class="boxtitle1" data-i18n="route">Honnan, hova</div>
+<div class="clear"></div>
+
+<div class="xform">
+
+<div class="xformitem">
+<div class="xformlabel1">
+<label for="i" data-i18n="from">Honnan:</label>
+</div>
+
+<div class="xformcontrol2">
+<input
+	type="text"
+	class="xinput allnev"
+	maxlength="35"
+	name="i"
+	id="i"
+	data-i18n-placeholder="fromPh"
+	placeholder="induló állomás?"
+>
+<ul class="ac-list" id="ac-i"></ul>
+</div>
+
+<div class="clear"></div>
+</div>
+
+<div class="xformitem">
+<div class="xformlabel1">
+<label for="e" data-i18n="to">Hova:</label>
+</div>
+
+<div class="xformcontrol2">
+<input
+	type="text"
+	class="xinput allnev"
+	maxlength="35"
+	name="e"
+	id="e"
+	data-i18n-placeholder="toPh"
+	placeholder="célállomás?"
+>
+<ul class="ac-list" id="ac-e"></ul>
+</div>
+
+<div class="clear"></div>
+</div>
+
+<div class="xformitem">
+<div class="xformlabel2">
+<label for="v" data-i18n="via">Érintve:</label>
+</div>
+
+<div class="xformcontrol2">
+<input
+	type="text"
+	class="xinput allnev"
+	maxlength="35"
+	name="v"
+	id="v"
+	data-i18n-title="viaTitle"
+	title="Egy köztes állomás adható meg"
+>
+<ul class="ac-list" id="ac-v"></ul>
+</div>
+
+<div class="clear"></div>
+</div>
+
+<div class="clear"></div>
+</div>
+</div>
+
+<div class="rboxbody1">
+<div class="boxtitle2" data-i18n="when">Mikor</div>
+<div class="clear"></div>
+<div id="cal" class="cal"></div>
+</div>
+
+<div class="clear"></div>
+</div>
+</div>
+
+<div class="clear"></div>
+
+<div id="searchbottom">
+<div class="box2">
+
+<div class="lboxbody2">
+<div class="boxtitle3">
+<label for="u">
+<span data-i18n="reduction">Kedvezmény</span>
+<span style="font-size:70%" data-i18n="domesticOnly"> (csak belföldi utazásnál)</span>
+</label>
+</div>
+
+<div class="clear"></div>
+
+<select
+	id="u"
+	name="u"
+	style="width:340px;font-size:8pt"
+	disabled
+	data-i18n-title="reductionTitle"
+	title="A nyilvános adatforrás nem tartalmaz díjszabást – korhű dísz."
+>
+<option value="1156" selected>Teljesárú menetdíj</option>
+
+<optgroup id="OG0" label="33%-os mérséklésű menetdíj">
+<option value="1133">26 éven aluli fiatal (Péntek 10:00 - Vasárnap 24:00) (33%)</option>
+<option value="1158">Családi kedv. (18 év alatti gyermekkel együtt utazó felnőtt/ek) (33%)</option>
+<option value="1262">Hungary Card tulajdonos (egy útra szóló kedvezmény) (33%)</option>
+</optgroup>
+
+<optgroup id="OG1" label="50%-os mérséklésű menetdíj">
+<option value="1166">Gyermek 6-tól 14 éves korig (50%)</option>
+<option value="1564">Hungary Card tulajdonos (egy útra szóló kedvezmény) (50%)</option>
+<option value="1155">Közszolgálati alkalmazott (50%)</option>
+<option value="1186">Magyar igazolvány külföldieknek (diák) (50%)</option>
+<option value="1145">Nyugdíjas - 50% (évi 16 egyúti)</option>
+<option value="1129">START Klub 50% kártya (50%)</option>
+<option value="1180">Tanuló (levelező) - a tanintézet és a lakóhely között (50%)</option>
+<option value="1143">Tanuló (nappali v. esti) - diákigazolvánnyal rendelkező (50%)</option>
+</optgroup>
+
+<optgroup id="OG2" label="90%-os mérséklésű menetdíj">
+<option value="1130">Azon személy, aki után magasabb összegű családi pótlék jár (90%)</option>
+<option value="1191">Fogyatékosságban szenvedő szoc. otthoni gondozott (90%)</option>
+<option value="1157">Fogyatékosságban szenvedő szoc. otthoni gondozott kísérője (90%)</option>
+<option value="1168">Fogyatékosságban szenvedő szoc. otthoni gondozott látogatója (90%)</option>
+<option value="1160">Fogyatékossági támogatásban részesülő személy (90%)</option>
+<option value="1132">Fogyatékossági támogatásban részesülő személy 1 kísérője (90%)</option>
+<option value="1190">Hallássérült (90%)</option>
+<option value="1181">Hallássérült kísérője (90%)</option>
+<option value="1153">Magasabb összegű családi pótlékban részesülő személy 1 kísérője (90%)</option>
+<option value="1149">Magyar igazolvány külföldieknek (6-65 év között) (90%)</option>
+<option value="1142">Munkanélküli (Képzésben résztvevő munkanélküliek kedvezménye) (90%)</option>
+<option value="1140">Nagycsaládos kedv. (min. 3 saját gyerek + szülők együttutazása) (90%)</option>
+<option value="1172">Nyugdíjas - 90% (évi 2 egyúti)</option>
+<option value="1148">Vak személy (90%)</option>
+<option value="1135">Vak személy kísérője (90%)</option>
+</optgroup>
+
+<optgroup id="OG3" label="Díjmentes">
+<option value="1185">65 éven felüli személy (díjm.)</option>
+<option value="1183">Gyermek 6 éves korig (díjm.)</option>
+<option value="1189">Magyar igazolvány külföldieknek (65 év felett) (díjm.)</option>
+<option value="1162">Menekült (díjm.)</option>
+<option value="1138">Vasutas igazolvánnyal rendelkező (1. osztály) Családtag/Nyugd. (díjm.)</option>
+<option value="1141">Vasutas igazolvánnyal rendelkező (2. osztály) Családtag/Nyugd. (díjm.)</option>
+<option value="1150">Vasutas igazolvánnyal rendelkező személy (1. osztály) (díjm.)</option>
+<option value="1159">Vasutas igazolvánnyal rendelkező személy (2. osztály) (díjm.)</option>
+</optgroup>
+
+<optgroup id="OG4" label="Bérletek">
+<option value="1127">30 napos bérlet</option>
+<option value="1152">Félhavi bérlet</option>
+<option value="1176">Havibérlet</option>
+<option value="1565">kerékpár 30 napos bérlet</option>
+<option value="1136">Kerékpár havibérlet</option>
+<option value="1165">Kutya  havibérlet</option>
+<option value="1154">kutya 30 napos bérlet</option>
+<option value="1137">Tanuló (30 napos) bérlet</option>
+<option value="1161">Tanuló bérlet</option>
+<option value="1178">Tanuló félhavi bérlet</option>
+</optgroup>
+
+<optgroup id="OG5" label="Kerékpár viteldíj">
+<option value="1173">Kedvezményes kerékpár viteldíj</option>
+<option value="1182">Kerékpár viteldíj</option>
+</optgroup>
+
+<option value="1128">Élőállat viteldíj</option>
+
+<optgroup id="OG6" label="Interneten nem vásárolható jegyek">
+<option value="1139">Állami gondozott gyermekek csoportjának (min. 10 fős) kísérője</option>
+<option value="1170">Állami gondozott gyermekek csoportjának (min. 10 fős) tagja</option>
+<option value="1177">Diákcsoport egy tagja</option>
+<option value="1179">Diákcsoport kísérője (10 év alattiak, min. 6 fős)</option>
+<option value="1167">Diákcsoport kísérője (nappali tagozatosak, 10 év feletti, 10 főnként 1 kísérő)</option>
+<option value="1164">Hadirokkant és hadigondozott és kísérői, hadiözvegy (díjm.)</option>
+<option value="1146">Kerekesszék, rokkantkocsi</option>
+<option value="1131">Magyar igazolvány külföldieknek (18 éven aluli csoport) (90%)</option>
+<option value="1163">Óvodás csoport kísérője (min. 10 fős, 10 főnként 3 kísérő) (90%)</option>
+<option value="1134">Óvodás csoport tagja (min. 10 fő) (90%)</option>
+<option value="1184">Vakvezető kutya (díjm.)</option>
+</optgroup>
+</select>
+
+</div>
+
+<div class="rboxbody2">
+<div class="boxtitle3" style="margin-left:0.5em" data-i18n="searchOptions">
+Keresési feltételek
+</div>
+
+<div class="clear"></div>
+
+<div class="cal2">
+
+<div class="reduceditem">
+<div class="reducedcontrol">
+<input class="xinput" name="sk" id="sk" value="1" type="checkbox">
+</div>
+<div class="reducedlabel">
+<label for="sk" data-i18n="noChange">átszállás nélkül</label>
+</div>
+</div>
+
+<div
+	class="reduceditem"
+	data-i18n-title="noBusTitle"
+	title="A vonatpótló autóbuszos szakaszokat is tartalmazó eljutások elhagyása"
+>
+<div class="reducedcontrol">
+<input class="xinput" name="nb" id="nb" value="1" type="checkbox">
+</div>
+<div class="reducedlabel">
+<label for="nb" data-i18n="noBus">pótlóbusz nélkül</label>
+</div>
+</div>
+
+<div class="clear"></div>
+
+<div
+	class="reduceditem"
+	data-i18n-title="railOnlyTitle"
+	title="Csak MÁV és GYSEV vonatok (és vonatpótlóik). Kikapcsolva a BKK, Volán és a helyi járatok is szerepelnek."
+>
+<div class="reducedcontrol">
+<input class="xinput" name="csv" id="csv" value="1" type="checkbox" checked>
+</div>
+
+<div class="reducedlabel" style="float:none">
+<label for="csv" data-i18n="railOnly">csak vasúti járat</label>
+</div>
+</div>
+
+</div>
+
+<div class="clear"></div>
+</div>
+
+<div class="clear"></div>
+
+<div class="boxend">
+<div class="ysubmit">
+<input
+	name="go"
+	id="go"
+	type="submit"
+	style="margin-right:1em"
+	data-i18n-value="submit"
+	value="Menetrend"
+>
+<input
+	id="goback"
+	type="button"
+	style="margin-left:1em"
+	data-i18n-value="back"
+	value="Visszaút"
+>
+</div>
+</div>
+
+</div>
+</div>
+
+<div id="searchdrop">
+<img src="img/t.gif" width="1" height="1" alt="">
+</div>
+
+<div class="clear"></div>
+</form>
+
+<div id="results"></div>
+
+<div id="footer">
+
+<div class="rfooter">
+<a
+	href="https://github.com/kajc10/regi-elvira"
+	id="repolink"
+	data-i18n="source"
+>Forráskód</a>
+|
+<a href="https://mavplusz.hu/" data-i18n="official">MÁVPlusz (hivatalos)</a>
+|
+<a href="https://jegy.mav.hu/" data-i18n="tickets">Jegyvásárlás</a>
+</div>
+
+<div class="clear"></div>
+
+<div class="discl" id="discl">
+	Nosztalgiából készült magánprojekt. <strong>Nem hivatalos oldal</strong>, semmilyen
+	kapcsolatban nem áll a MÁV-START Zrt.-vel. Az adatok a MÁVPlusz nyilvános
+	felületéről származnak; kötelező érvényű információért a
+	<a href="https://mavplusz.hu/">hivatalos oldalt</a> használja.
+</div>
+
+<div id="support">
+<span class="verzio">
+<span data-i18n="edition">nosztalgia kiadás</span>
+&middot;
+<span id="verzio-date"></span>
+</span>
+</div>
+
+</div>
+</div>
+</div>
+
+<script src="js/i18n.js"></script>
+<script src="js/reduction-en.js"></script>
+<script src="js/api.js"></script>
+<script src="js/elvira.js"></script>
+
+</body>
+</html>

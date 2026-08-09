@@ -1,0 +1,36 @@
+# dependencies
+node_modules/
+package-lock.json
+
+# editors / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# logs and scratch
+*.log
+npm-debug.log*
+scratch/
+tmp/
+
+# local overrides — keep private proxy addresses or experiments out of the repo
+js/api.local.js
+.env
+.env.*
+
+# stray screenshots dropped into the project folder — these often show
+# dashboards, account names or personal data, so never publish them
+Képernyőkép*.png
+Screenshot*.png
+screenshot*.png
+
+# personal notes — never publish these
+selfnote.md
+selfnote*.md
+notes.md
+*.private.md
+*.secret.md
+CLAUDE.md
