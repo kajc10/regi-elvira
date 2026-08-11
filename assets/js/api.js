@@ -43,12 +43,38 @@ var ELVIRA_API = (function () {
 
   // ---------------------------------------------------------------- transport
 
-  function gql(query, variables) {
+  /* GET rather than POST, to skip a round trip: a POST carrying
+   * Content-Type: application/json is not a "simple" cross-origin request, so
+   * the browser asks the proxy for permission with an OPTIONS preflight before
+   * every single call. A GET with no custom headers does not. Answers are still
+   * never cached — see the proxy — because live delays are the whole point.
+   *
+   * Older deployments of the proxy answer 405 to a GET. Rather than making the
+   * page and the proxy have to be updated in lockstep, the first such refusal
+   * switches this back to POST for the rest of the session. */
+  var useGet = true;
+
+  function send(query, variables) {
+    if (useGet) {
+      var url =
+        API_URL +
+        "?query=" + encodeURIComponent(query) +
+        "&variables=" + encodeURIComponent(JSON.stringify(variables));
+      return fetch(url).then(function (r) {
+        if (r.status !== 405) return r;
+        useGet = false;
+        return send(query, variables);
+      });
+    }
     return fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query: query, variables: variables || {} }),
-    })
+      body: JSON.stringify({ query: query, variables: variables }),
+    });
+  }
+
+  function gql(query, variables) {
+    return send(query, variables || {})
       .then(function (r) {
         if (!r.ok) throw new Error("A menetrendi szolgáltatás hibát adott (HTTP " + r.status + ").");
         return r.json();
@@ -70,6 +96,7 @@ var ELVIRA_API = (function () {
     "       date:$date, time:\"00:00:00\", arriveBy:false,",
     "       numItineraries:200, searchWindow:86400,",
     "       transportModes:$modes, walkReluctance:6){",
+    "    routingErrors{ code inputField }",
     "    itineraries{",
     "      startTime endTime duration walkDistance",
     "      legs{",
@@ -79,7 +106,12 @@ var ELVIRA_API = (function () {
     "        trip{ gtfsId tripShortName tripHeadsign }",
     "        route{ shortName longName mode }",
     "        agency{ name }",
-    "        intermediatePlaces{ name arrivalTime departureTime }",
+    /* The per-stop delay, so the detail panel can mark a late stop the way the
+     * table outside does. Only the delay is asked for, not scheduledTime as
+     * well: the scheduled time is the shown time minus it, and this list is
+     * already the largest thing in the response. */
+    "        intermediatePlaces{ name arrivalTime departureTime",
+    "          arrival{ estimated{ delay } } departure{ estimated{ delay } } }",
     "      }",
     "    }",
     "  }",
@@ -96,8 +128,48 @@ var ELVIRA_API = (function () {
       date: opts.date,
       modes: opts.modes,
     }).then(function (data) {
-      return (data.plan && data.plan.itineraries) || [];
+      var plan = data.plan || {};
+      /* OTP reports LOCATION_NOT_FOUND when it cannot attach a coordinate to its
+       * routing graph. MÁV's graph covers Hungary and stops at the border, so
+       * every foreign station in the list produces it — the timetable knows
+       * Wien Hbf and its railjets, but nothing can be planned to it. Recorded
+       * here so the page can say that instead of "no connection found". */
+      (plan.routingErrors || []).forEach(function (e) {
+        if (e.code === "LOCATION_NOT_FOUND") {
+          unreachable[e.inputField === "TO" ? "to" : "from"] = true;
+        }
+      });
+      return plan.itineraries || [];
     });
+  }
+
+  /* Set while a search runs, read once it finishes. Which endpoint OTP could not
+   * place, if either. */
+  var unreachable = { from: false, to: false };
+
+  /* Leg-level delays arrive as plain seconds, but a stop's own delay is an
+   * ISO-8601 duration ("PT3M", "PT0S", and "PT-1M" when a train is running
+   * early). Both forms end up here so the caller never has to care which it got. */
+  function delaySeconds(v) {
+    if (typeof v === "number") return v;
+    if (!v) return 0;
+    var m = /^(-?)P(?:(-?[\d.]+)D)?(?:T(?:(-?[\d.]+)H)?(?:(-?[\d.]+)M)?(?:(-?[\d.]+)S)?)?$/.exec(v);
+    if (!m) return 0;
+    var n = function (x) { return parseFloat(x || 0); };
+    var total = n(m[2]) * 86400 + n(m[3]) * 3600 + n(m[4]) * 60 + n(m[5]);
+    return Math.round(m[1] === "-" ? -total : total);
+  }
+
+  /* What a stop's arrival or departure is actually doing: the time to print, how
+   * late it is, and whether that is a live figure at all. */
+  function stopTime(place, which) {
+    var side = place[which]; // "arrival" | "departure"
+    var live = !!(side && side.estimated);
+    return {
+      at: which === "arrival" ? place.arrivalTime : place.departureTime,
+      delay: live ? delaySeconds(side.estimated.delay) : 0,
+      realTime: live,
+    };
   }
 
   // ------------------------------------------------------------------ filters
@@ -146,12 +218,16 @@ var ELVIRA_API = (function () {
     var seen = {};
     return itineraries.filter(function (it) {
       var t = transitLegs(it);
-      var key =
-        t[0].startTime +
-        "|" +
-        t[t.length - 1].endTime +
-        "|" +
-        t.map(function (l) { return l.startTime; }).join(",");
+      /* Keyed on which trains are boarded and when, not on the arrival time.
+       * BUDAPEST* plans from four terminals in eight separate calls, and MÁV's
+       * realtime estimate can move between them — the same journey came back
+       * arriving at 21:10 from one call and 21:11 from another, which an
+       * arrival-based key read as two different trains and listed twice. */
+      var key = t
+        .map(function (l) {
+          return l.startTime + ":" + ((l.trip && l.trip.gtfsId) || l.mode);
+        })
+        .join(",");
       if (seen[key]) return false;
       seen[key] = 1;
       return true;
@@ -258,7 +334,10 @@ var ELVIRA_API = (function () {
   function modeSets(f) {
     if (!f.railOnly) {
       var all = [{ mode: "WALK" }, { mode: "RAIL" }, { mode: "TRAM" }, { mode: "SUBWAY" }, { mode: "FERRY" }];
-      if (!f.noBus) all.push({ mode: "BUS" });
+      /* COACH is the Volán intercity network — the one that actually reaches the
+       * village stops, and a different OTP mode from the city BUS. Without it,
+       * clearing "csak vasúti járat" offered bus stops it could not plan to. */
+      if (!f.noBus) all.push({ mode: "BUS" }, { mode: "COACH" }, { mode: "TROLLEYBUS" });
       return [all];
     }
     var railOnly = [{ mode: "WALK" }, { mode: "RAIL" }];
@@ -276,6 +355,8 @@ var ELVIRA_API = (function () {
   var MAX_PLAN_CALLS = 8;
 
   function search(q) {
+    unreachable = { from: false, to: false };
+
     var common = {
       via: q.via,
       date: q.ymd,
@@ -371,9 +452,16 @@ var ELVIRA_API = (function () {
     },
     GROUPS: GROUPS,
     search: search,
+    /* Which endpoint of the last search OTP could not place on its graph, if
+     * either. Only meaningful once search() has resolved. */
+    unreachable: function () {
+      return unreachable;
+    },
     transitLegs: transitLegs,
     isNationalRail: isNationalRail,
     isReplacementBus: isReplacementBus,
+    stopTime: stopTime,
+    delaySeconds: delaySeconds,
     fmtClock: fmtClock,
     fmtDuration: fmtDuration,
     fmtDelay: fmtDelay,

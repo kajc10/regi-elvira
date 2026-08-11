@@ -42,10 +42,25 @@ function corsHeaders(origin: string): Record<string, string> {
   return {
     "Access-Control-Allow-Origin": origin || "*",
     "Access-Control-Allow-Headers": "content-type",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Max-Age": "86400",
     Vary: "Origin",
   };
+}
+
+/* The page asks by GET so the answer can be cached and the preflight skipped;
+ * POST is still accepted, because an older copy of the page may be in somebody's
+ * browser cache. Both end up as the same JSON body upstream. */
+function readRequest(request: Request): Promise<string> | string | null {
+  if (request.method === "POST") return request.text();
+  if (request.method !== "GET") return null;
+  const params = new URL(request.url).searchParams;
+  const query = params.get("query");
+  if (!query) return null;
+  return JSON.stringify({
+    query,
+    variables: JSON.parse(params.get("variables") || "{}"),
+  });
 }
 
 Deno.serve(async (request: Request) => {
@@ -63,14 +78,29 @@ Deno.serve(async (request: Request) => {
     return new Response(null, { status: 204, headers: cors });
   }
 
-  if (request.method !== "POST") {
-    return new Response("POST requests only.", {
+  if (request.method !== "GET" && request.method !== "POST") {
+    return new Response("GET or POST requests only.", {
       status: 405,
       headers: { ...cors, "Content-Type": "text/plain; charset=utf-8" },
     });
   }
 
-  const body = await request.text();
+  let body: string;
+  try {
+    const read = await readRequest(request);
+    if (read === null) {
+      return new Response("Expected a GraphQL query.", {
+        status: 400,
+        headers: { ...cors, "Content-Type": "text/plain; charset=utf-8" },
+      });
+    }
+    body = read;
+  } catch {
+    return new Response("Malformed query parameters.", {
+      status: 400,
+      headers: { ...cors, "Content-Type": "text/plain; charset=utf-8" },
+    });
+  }
 
   if (body.length > MAX_BODY_BYTES) {
     return new Response("Request too large.", {
@@ -117,9 +147,10 @@ Deno.serve(async (request: Request) => {
     headers: {
       ...cors,
       "Content-Type": "application/json; charset=utf-8",
-      // Identical searches within a minute reuse the answer, which keeps realtime
-      // data fresh enough while asking as little of MÁV as possible.
-      "Cache-Control": "public, max-age=60",
+      /* Never cached. Live delays are the point of the page, and a stored answer
+       * is a wrong one the moment a train loses another minute. The request is a
+       * GET so that it costs no CORS preflight — not so that it can be stored. */
+      "Cache-Control": "no-store",
     },
   });
 });
