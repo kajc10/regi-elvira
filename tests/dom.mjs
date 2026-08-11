@@ -415,5 +415,53 @@ check("reduction options restored", $("u").options[0].textContent === "Teljesár
 const huHeaders2 = [...doc.querySelectorAll("div.timetable thead th")].map((th) => th.textContent.replace(/\s+/g, ""));
 check("results back in Hungarian", huHeaders2.join("|") === "Rész-le-tek|Indulás|Érkezés|Át-szál-lás|Idő-tartam|Összeskm", huHeaders2.join("|"));
 
+/* ---- three states, decided by the clock.
+ *
+ * Everything above ran against the real clock, with the whole canned journey in
+ * the past. Here it is moved to 10:20 on the fixture's own day, which puts
+ * Tatabánya (09:59, three late) and Komárom (10:18, on time) behind the train
+ * and Győr (10:40) still ahead. Last, because it stubs Date.now. */
+const realNow = window.Date.now;
+window.Date.now = () => at(10, 20);
+$("i").value = "Budapest-Keleti";
+$("e").value = "Sopron";
+$("uff").dispatchEvent(new window.Event("submit", { cancelable: true, bubbles: true }));
+await new Promise((r) => setTimeout(r, 400));
+doc.querySelector("div.timetable tbody td.info a")
+  .dispatchEvent(new window.Event("click", { cancelable: true, bubbles: true }));
+
+const panel = doc.getElementById("more0");
+const stopAt = (name) =>
+  [...panel.querySelectorAll("tr")].find((tr) => tr.children[0]?.textContent === name);
+
+// 1. behind the train and late — struck through in red
+const past = stopAt("Tatabánya");
+check("a stop already passed, running late, is marked", !!past?.querySelector(".lateold"),
+  past?.textContent);
+check("…and is not also painted as on time", !past?.querySelector(".asplanned"), past?.textContent);
+
+// 2. behind the train and punctual — blue, so "it happened" is visible too
+const kept = stopAt("Komárom");
+check("a stop already passed, on time, is blue", !!kept?.querySelector(".asplanned"),
+  kept?.textContent);
+check("…and carries no delay markup", !kept?.querySelector(".lateold"), kept?.textContent);
+
+// 3. still ahead — plain, whatever the forecast says
+const ahead = stopAt("Győr");
+check("a stop still ahead is left plain", !ahead?.querySelector(".lateold") && !ahead?.querySelector(".asplanned"),
+  ahead?.textContent);
+check("…but its expected time is still shown", /10:40/.test(ahead?.textContent ?? ""),
+  ahead?.textContent);
+
+const far = stopAt("Csorna"); // leg 2, hours away, no live data at all
+check("nothing far down the line is marked",
+  !far?.querySelector(".lateold") && !far?.querySelector(".asplanned"), far?.textContent);
+
+const end = stopAt("Sopron");
+check("nor the final arrival, which has not happened", !end?.querySelector(".lateold"),
+  end?.textContent);
+
+window.Date.now = realNow;
+
 console.log(`\n${failures === 0 ? "ALL CHECKS PASSED" : failures + " CHECKS FAILED"}`);
 process.exit(failures ? 1 : 0);

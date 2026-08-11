@@ -124,6 +124,12 @@
 	/* Column names sit under the band and must not compete with it. */
 	div.more tr.cols th {font-size:85%;font-weight:normal;color:#5A5A5A}
 
+	/* A time the train has already made, on schedule. Blue separates "this is
+	   what happened" from a plain black forecast further down the line, without
+	   claiming anything went wrong. #0B4D87 is the stylesheet's own dark blue. */
+	div.more .asplanned {color:#0B4D87}
+
+
 	/* The panel renders at the same size as the results table — its 100% is 100%
 	   of the table's 75% — so a stop list reads as heavy as the journeys it
 	   belongs to. This drops it to secondary weight. 12px -> 10.8px. */
@@ -132,6 +138,11 @@
 	/* --- misc --- */
 	div.timetable td.info {width:24px}
 	div.timetable tr.det td {padding:0;border-top:0}
+	/* …but lift the station names a couple of pixels off the panel edge. Written
+	   through tr.det, and placed after it, because that rule's padding:0 is a
+	   shorthand: it outranks a plain div.more selector, and some engines apply
+	   the shorthand by document order regardless of specificity. */
+	div.timetable tr.det div.more td.l {padding-left:2px}
 	div.pager {margin:0 0 1em 0;text-align:center}
 	div.pager input {font-size:11px;margin:0 0.5em}
 	div.loading {padding:2em;text-align:center;color:#195B95;font-size:90%}
