@@ -50,7 +50,7 @@ const PLAN = {
               departureDelay: 180, arrivalDelay: 540,
               from: { name: "Budapest-Keleti", departureTime: at(9, 18) },
               to: { name: "Győr", arrivalTime: at(10, 40) },
-              trip: { gtfsId: "1:111", tripShortName: "992 SCARBANTIA InterCity", tripHeadsign: "Sopron" },
+              trip: { gtfsId: "1:111", tripShortName: "992 SCARBANTIA InterCity InterCity", tripHeadsign: "Sopron" },
               route: { shortName: '<span class="MNR2007">&#474;</span>', longName: "IC SCARBANTIA", mode: "RAIL" },
               agency: { name: "MÁV Személyszállítási Zrt." },
               /* Tatabánya is running three minutes late, Komárom has made the
@@ -74,7 +74,7 @@ const PLAN = {
               departureDelay: 0, arrivalDelay: 0,
               from: { name: "Győr", departureTime: at(11, 0) },
               to: { name: "Sopron", arrivalTime: at(12, 40) },
-              trip: { gtfsId: "1:222", tripShortName: "9928 személyvonat", tripHeadsign: "Sopron" },
+              trip: { gtfsId: "1:222", tripShortName: "9928 személyvonat passenger train", tripHeadsign: "Sopron" },
               route: { shortName: '<span class="MNR2007">&#363;</span>', longName: "S30", mode: "RAIL" },
               agency: { name: "GYSEV Zrt." },
               // Leg 2 has no live data at all: no estimated block, no markup.
@@ -275,6 +275,15 @@ check("opens on click", more.style.display === "block", more.style.display);
 
 const detailText = more.textContent.replace(/\s+/g, " ");
 check("details name the train", detailText.includes("992 SCARBANTIA InterCity"));
+
+/* MÁV writes the category twice, once per language, so the raw name reads
+ * "992 SCARBANTIA InterCity InterCity" and "9928 személyvonat passenger train".
+ * One category, in the page's language. */
+check("the doubled category is stripped", !/InterCity InterCity/.test(detailText),
+  detailText.slice(0, 120));
+check("the Hungarian category is kept, not the English one",
+  /9928 személyvonat/.test(detailText) && !/passenger train/.test(detailText),
+  detailText.slice(0, 200));
 check("details list intermediate stops", detailText.includes("Tatabánya") && detailText.includes("Komárom") && detailText.includes("Csorna"));
 check("details show transfer time", /átszállási idő: 20 perc/.test(detailText), detailText.slice(0, 200));
 check("details flag the delay", /\+9 perc késés/.test(detailText), detailText.slice(0, 120));
@@ -391,6 +400,10 @@ const enPager = [...doc.querySelectorAll(".pager input")].map((b) => b.value);
 check("English pager", enPager.join(" | ") === "<<< previous day | next day >>>", enPager.join(" | "));
 check("English now-line", /^now \d{2}:\d{2}$/.test(doc.querySelector(".nowbar span")?.textContent ?? ""), doc.querySelector(".nowbar span")?.textContent);
 check("English details panel", /transfer time: 20 min/.test(doc.getElementById("more0").textContent.replace(/\s+/g, " ")));
+const enDetail = doc.getElementById("more0").textContent.replace(/\s+/g, " ");
+check("category switches language with the page",
+  /9928 passenger train/.test(enDetail) && !/személyvonat/.test(enDetail), enDetail.slice(0, 200));
+check("…and is still not doubled", !/passenger train passenger train/.test(enDetail));
 const enCols = doc.getElementById("more0").querySelector("tr.cols");
 check("English detail header", enCols && [...enCols.children].map((th) => th.textContent).join("|") === "Station|Arrival|Departure",
   enCols && [...enCols.children].map((th) => th.textContent).join("|"));

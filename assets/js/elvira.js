@@ -459,6 +459,54 @@
   }
 
   /** Route category pictogram + name, e.g. the InterCity glyph plus "IC SCARBANTIA". */
+  /* MÁV writes the category into tripShortName twice, once in each language:
+   * "3174 személyvonat passenger train". Where the two coincide it stutters —
+   * "650 NYÍRSÉG InterCity InterCity". The vocabulary is small and closed, so a
+   * table is honest here; guessing with a regex would eat real train names.
+   * "fast train" is the English for both sebesvonat and gyorsvonat, which is why
+   * the full pair is matched before either half. */
+  var CATEGORIES = [
+    ["railjet xpress", "railjet xpress"],
+    ["személyvonat", "passenger train"],
+    ["Expresszvonat", "express train"],
+    ["InterRégió", "InterRegio"],
+    ["sebesvonat", "fast train"],
+    ["gyorsvonat", "fast train"],
+    ["EuroNight", "EuroNight"],
+    ["EuroRegio", "EuroRegio"],
+    ["InterCity", "InterCity"],
+    ["EuroCity", "EuroCity"],
+    ["railjet", "railjet"],
+  ];
+
+  function endsWith(s, tail) {
+    return s.length > tail.length && s.slice(-tail.length) === tail;
+  }
+
+  /* "650 NYÍRSÉG InterCity InterCity" -> "650 NYÍRSÉG InterCity", and in English
+   * "3174 személyvonat passenger train" -> "3174 passenger train". A name whose
+   * tail is not in the table is left exactly as it arrived. */
+  function trainName(raw) {
+    var forms = [
+      function (c) { return c[0] + " " + c[1]; }, // both, the usual case
+      function (c) { return c[0]; }, // Hungarian only — MÁV is not consistent
+      function (c) { return c[1]; }, // English only
+    ];
+    for (var f = 0; f < forms.length; f++) {
+      for (var i = 0; i < CATEGORIES.length; i++) {
+        var tail = " " + forms[f](CATEGORIES[i]);
+        if (endsWith(raw, tail)) {
+          return (
+            raw.slice(0, raw.length - tail.length) +
+            " " +
+            CATEGORIES[i][LANG === "hu" ? 0 : 1]
+          );
+        }
+      }
+    }
+    return raw;
+  }
+
   function routeLabel(leg) {
     var span = el("span");
     var short = (leg.route && leg.route.shortName) || "";
@@ -472,7 +520,7 @@
       span.appendChild(document.createTextNode(short + " "));
     }
     var name = (leg.trip && leg.trip.tripShortName) || (leg.route && leg.route.longName) || "";
-    var strong = el("span", "trainno", name);
+    var strong = el("span", "trainno", trainName(name));
     span.appendChild(strong);
     return span;
   }
