@@ -811,7 +811,25 @@
         row.appendChild(el("td", "l", s.name));
         [s.arr, s.dep].forEach(function (x) {
           var td = el("td", "r");
-          if (x.at != null) td.appendChild(timeCell(x.at, x.delay, x.realTime));
+          if (x.at != null) {
+            /* Three states, and only the clock decides between them.
+             *
+             *   red, struck   it happened, and it was late
+             *   blue          it happened, and it ran to the timetable
+             *   plain         it has not happened yet — this is a forecast
+             *
+             * Everything below the train is a forecast, so striking the
+             * timetable there states a prediction as fact: the 00:40 out of
+             * Nyugati was crossing out times as far ahead as 02:29. Forecasts
+             * still print the expected time, because that answers "when will I
+             * be there" — they are just not dressed up as past events. */
+            var happened = x.at <= Date.now();
+            if (x.realTime && happened && x.delay <= 0) {
+              td.appendChild(el("span", "asplanned", API.fmtClock(x.at)));
+            } else {
+              td.appendChild(timeCell(x.at, x.delay, x.realTime && happened));
+            }
+          }
           row.appendChild(td);
         });
         tbody.appendChild(row);
