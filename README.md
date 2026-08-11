@@ -27,7 +27,7 @@ official site.
 
 | Date | Changes |
 |---|---|
-| 2026-08 | First round of fixes after the site was mentioned on [r/programmingHungary](https://www.reddit.com/r/programmingHungary/) · station search now matches word by word, so eg. `Budapest Keleti` finds `Budapest-Keleti` · the journey detail panel names its columns · coach and bus stops, opt-in behind *csak vasúti járat* · a station the planner cannot reach says so instead of showing an empty result · `GET` instead of `POST`, one less round trip per request · stop-by-stop panel marks each late stop the way the results table does, scheduled struck through and expected beside it · assets moved under `assets/`, tests into `tests/` · monthly GitHub Action refreshes the station lists |
+| 2026-08 | First round of fixes after the site was mentioned on [r/programmingHungary](https://www.reddit.com/r/programmingHungary/) · station search now matches word by word, so eg. `Budapest Keleti` finds `Budapest-Keleti` · the journey detail panel names its columns · coach and bus stops, opt-in behind *csak vasúti járat* · a station the planner cannot reach says so instead of showing an empty result · `GET` instead of `POST`, one less round trip per request · stop-by-stop panel marks each late stop the way the results table does, scheduled struck through and expected beside it · the train category is shown once, in the page's language, instead of twice as MÁV sends it · the detail panel reads at secondary weight rather than competing with the results table · assets moved under `assets/`, tests into `tests/` · monthly GitHub Action refreshes the station lists |
 
 ## Setup
 The solution was designed to be hosted on GitHub pages.

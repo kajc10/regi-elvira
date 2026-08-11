@@ -124,6 +124,11 @@
 	/* Column names sit under the band and must not compete with it. */
 	div.more tr.cols th {font-size:85%;font-weight:normal;color:#5A5A5A}
 
+	/* The panel renders at the same size as the results table — its 100% is 100%
+	   of the table's 75% — so a stop list reads as heavy as the journeys it
+	   belongs to. This drops it to secondary weight. 12px -> 10.8px. */
+	div.more table {font-size:90%}
+
 	/* --- misc --- */
 	div.timetable td.info {width:24px}
 	div.timetable tr.det td {padding:0;border-top:0}
