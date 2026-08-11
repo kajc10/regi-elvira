@@ -17,22 +17,45 @@ const PORT = Number(process.env.PORT || 8787);
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
+
+// GET is what the page uses (cacheable, no preflight); POST still works.
+async function readBody(req) {
+  if (req.method === "GET") {
+    const params = new URL(req.url, "http://127.0.0.1").searchParams;
+    const query = params.get("query");
+    if (!query) return null;
+    return JSON.stringify({
+      query,
+      variables: JSON.parse(params.get("variables") || "{}"),
+    });
+  }
+  const chunks = [];
+  for await (const c of req) chunks.push(c);
+  return Buffer.concat(chunks).toString("utf8");
+}
 
 createServer(async (req, res) => {
   if (req.method === "OPTIONS") {
     res.writeHead(204, CORS).end();
     return;
   }
-  if (req.method !== "POST") {
-    res.writeHead(405, { ...CORS, "Content-Type": "text/plain" }).end("POST only");
+  if (req.method !== "GET" && req.method !== "POST") {
+    res.writeHead(405, { ...CORS, "Content-Type": "text/plain" }).end("GET or POST only");
     return;
   }
 
-  const chunks = [];
-  for await (const c of req) chunks.push(c);
-  const body = Buffer.concat(chunks).toString("utf8");
+  let body;
+  try {
+    body = await readBody(req);
+  } catch {
+    body = null;
+  }
+  if (body === null) {
+    res.writeHead(400, { ...CORS, "Content-Type": "text/plain" }).end("Expected a GraphQL query.");
+    return;
+  }
 
   try {
     const upstream = await fetch(UPSTREAM, {
@@ -41,8 +64,14 @@ createServer(async (req, res) => {
       body,
     });
     const text = await upstream.text();
-    console.log(`${new Date().toISOString().slice(11, 19)}  ${upstream.status}  ${text.length} bytes`);
-    res.writeHead(upstream.status, { ...CORS, "Content-Type": "application/json; charset=utf-8" }).end(text);
+    console.log(`${new Date().toISOString().slice(11, 19)}  ${req.method}  ${upstream.status}  ${text.length} bytes`);
+    res
+      .writeHead(upstream.status, {
+        ...CORS,
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "no-store",
+      })
+      .end(text);
   } catch (err) {
     console.error("upstream error:", err.message);
     res

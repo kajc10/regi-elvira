@@ -13,6 +13,15 @@
 
   var stations = [];
   var stationIndex = null; // normalised name -> station
+
+  /* Coach and bus stops, fetched only if the user clears "csak vasúti járat".
+   * They outnumber the railway stations and are named "Település, Utca", so
+   * mixing them in by default would bury Szeged-Rókus under three hundred Szeged
+   * bus stops — and cost every visitor the download for something ELVIRA never
+   * did. Opt in, and only then pay for it. */
+  var roadStations = [];
+  var roadIndex = null; // kept apart from stationIndex so ticking the box hides it again
+  var roadPromise = null;
   var lastQuery = null;
   var lastResults = null;
 
@@ -45,6 +54,18 @@
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
       .trim();
+  }
+
+  /* The timetable spells its separators in ways nobody types: "Budapest-Keleti",
+   * "K\u0151b\u00e1nya als\u00f3", "Szeged, R\u00f3kus vas\u00fat\u00e1llom\u00e1s". Matching the query as one
+   * uninterrupted run of characters therefore missed the obvious \u2014 "Budapest
+   * Keleti" found nothing at all, and 1689 of the 16962 names carry a hyphen.
+   * Both sides are cut into words instead, and every word of the query has to
+   * turn up in the name. */
+  var SEP = /[^0-9a-z]+/;
+
+  function words(s) {
+    return norm(s).split(SEP).filter(Boolean);
   }
 
   // ==================================================================== dates
@@ -202,7 +223,7 @@
   // ============================================================= autocomplete
 
   function loadStations() {
-    return fetch("data/stations.json")
+    return fetch("data/stations-rail.json")
       .then(function (r) {
         return r.json();
       })
@@ -221,8 +242,10 @@
         stations = groups.concat(list);
         stationIndex = new Map();
         stations.forEach(function (s) {
-          var k = norm(s.n);
-          if (!stationIndex.has(k)) stationIndex.set(k, s);
+          // Normalising 17k names on every keystroke is wasteful; do it once.
+          s._n = norm(s.n);
+          s._w = words(s.n);
+          if (!stationIndex.has(s._n)) stationIndex.set(s._n, s);
         });
         // "budapest" on its own should resolve to the wildcard, not to a terminal.
         groups.forEach(function (g) {
@@ -236,19 +259,76 @@
       });
   }
 
+  /** True while "csak vasúti járat" is cleared, i.e. buses are wanted. */
+  function roadWanted() {
+    var cb = $("csv");
+    return !!cb && !cb.checked;
+  }
+
+  /* Fetched at most once, the first time the checkbox is cleared. A failure
+   * leaves roadPromise null so a later attempt can try again. */
+  function loadRoadStations() {
+    if (roadPromise) return roadPromise;
+    roadPromise = fetch("data/stations-road.json")
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (list) {
+        roadIndex = new Map();
+        list.forEach(function (s) {
+          s._n = norm(s.n);
+          s._w = words(s.n);
+          if (!roadIndex.has(s._n)) roadIndex.set(s._n, s);
+        });
+        roadStations = list;
+      })
+      .catch(function () {
+        roadPromise = null;
+        showError(t("roadStationsError"));
+      });
+    return roadPromise;
+  }
+
+  /* How well a name answers the query, best first; -1 for no match at all.
+   * 0 and 1 are the old behaviour and still win, so nothing that used to be
+   * offered first drops down the list. */
+  function rank(s, q, qw) {
+    var at = s._n.indexOf(q);
+    if (at === 0) return 0; // the query opens the name
+    if (at > 0) return 1; // …or appears in it unbroken
+    if (!qw.length) return -1;
+    var everyWordStarts = qw.every(function (w) {
+      return s._w.some(function (x) {
+        return x.indexOf(w) === 0;
+      });
+    });
+    if (everyWordStarts) return 2; // "budapest kel" → Budapest-Keleti
+    var everyWordSomewhere = qw.every(function (w) {
+      return s._n.indexOf(w) >= 0;
+    });
+    return everyWordSomewhere ? 3 : -1; // "pest kel" → Budapest-Keleti
+  }
+
   function suggest(term, limit) {
     var q = norm(term);
     if (q.length < 2) return [];
-    var starts = [];
-    var contains = [];
-    for (var i = 0; i < stations.length; i++) {
-      var n = norm(stations[i].n);
-      var at = n.indexOf(q);
-      if (at === 0) starts.push(stations[i]);
-      else if (at > 0) contains.push(stations[i]);
-      if (starts.length >= limit) break;
+    var qw = words(term);
+    // Railway stations first and always; road stops only when asked for, and
+    // after them, so a station never loses its place to a bus stop.
+    var lists = roadWanted() && roadStations.length ? [stations, roadStations] : [stations];
+    var buckets = [[], [], [], []];
+    for (var li = 0; li < lists.length; li++) {
+      var arr = lists[li];
+      for (var i = 0; i < arr.length; i++) {
+        var r = rank(arr[i], q, qw);
+        if (r >= 0) buckets[r].push(arr[i]);
+        if (buckets[0].length >= limit) break;
+      }
+      if (buckets[0].length >= limit) break;
     }
-    return starts.concat(contains).slice(0, limit);
+    return buckets[0]
+      .concat(buckets[1], buckets[2], buckets[3])
+      .slice(0, limit);
   }
 
   function attachAutocomplete(inputId, listId) {
@@ -268,14 +348,35 @@
       close();
     }
 
+    /* One mark per matched word. The query is matched word by word now, so a
+     * single range would leave half of what was typed unhighlighted. */
     function highlight(name, term) {
       var n = norm(name);
-      var at = n.indexOf(norm(term));
-      if (at < 0) return document.createTextNode(name);
+      var whole = norm(term);
+      var ranges = [];
+      var at = n.indexOf(whole);
+      if (at >= 0) {
+        ranges.push([at, at + whole.length]);
+      } else {
+        words(term).forEach(function (w) {
+          var i = n.indexOf(w);
+          if (i >= 0) ranges.push([i, i + w.length]);
+        });
+        ranges.sort(function (a, b) {
+          return a[0] - b[0];
+        });
+      }
+      if (!ranges.length) return document.createTextNode(name);
+
       var frag = document.createDocumentFragment();
-      frag.appendChild(document.createTextNode(name.slice(0, at)));
-      frag.appendChild(el("span", "m", name.slice(at, at + term.length)));
-      frag.appendChild(document.createTextNode(name.slice(at + term.length)));
+      var pos = 0;
+      ranges.forEach(function (r) {
+        if (r[0] < pos) return; // words that overlap: keep the first
+        frag.appendChild(document.createTextNode(name.slice(pos, r[0])));
+        frag.appendChild(el("span", "m", name.slice(r[0], r[1])));
+        pos = r[1];
+      });
+      frag.appendChild(document.createTextNode(name.slice(pos)));
       return frag;
     }
 
@@ -327,11 +428,16 @@
     input.addEventListener("blur", close);
   }
 
-  /** Resolve typed text to a station record. */
+  /* Resolve typed text to a station record. Railway stations win an exact match
+   * outright; a road stop is only considered while the checkbox asks for one, so
+   * a bus stop left in the field from earlier stops being searchable the moment
+   * "csak vasúti járat" is ticked again — the same rule the dropdown follows. */
   function resolveStation(text) {
     if (!text || !text.trim()) return null;
-    var exact = stationIndex && stationIndex.get(norm(text));
+    var key = norm(text);
+    var exact = stationIndex && stationIndex.get(key);
     if (exact) return exact;
+    if (roadWanted() && roadIndex && roadIndex.has(key)) return roadIndex.get(key);
     var s = suggest(text, 1);
     return s.length ? s[0] : null;
   }
@@ -519,7 +625,7 @@
     link.href = "#";
     link.title = t("detailsTitle");
     var img = document.createElement("img");
-    img.src = "img/button01.gif";
+    img.src = "assets/img/button01.gif";
     img.alt = t("moreAlt");
     link.appendChild(img);
     link.onclick = function (e) {
@@ -574,8 +680,12 @@
     var tbody = document.createElement("tbody");
 
     API.transitLegs(it).forEach(function (leg, i) {
+      /* The train's own name goes in the blue band, which then opens its block:
+       * everything under one band belongs to that train, until the next band.
+       * With the band below the name instead it read as a separator, leaving the
+       * name looking like it belonged to whatever came before. */
       var head = document.createElement("tr");
-      var th = document.createElement("th");
+      var th = el("th", "t");
       th.colSpan = 3;
       th.appendChild(routeLabel(leg));
       if (leg.trip && leg.trip.tripHeadsign) {
@@ -590,11 +700,17 @@
         th.appendChild(bus);
       }
       if (leg.realTime) {
-        var d = leg.departureDelay || 0;
+        /* The delay on arrival, not on departure. A train can leave punctually
+         * and lose a quarter of an hour on the way — 2548 out of Nyugati did
+         * exactly that — so a note taken from the departure would have read
+         * "pontos" above stop rows showing nine minutes down. This is where the
+         * passenger actually ends up. Arriving early counts as on time. */
+        var d = leg.arrivalDelay || 0;
+        var late = d > 0;
         var note = el(
           "span",
-          d ? "latenew" : "ontime",
-          "  " + (d ? API.fmtDelay(d) + t("late") : t("onTime")),
+          late ? "latenew" : "ontime",
+          "  " + (late ? API.fmtDelay(d) + t("late") : t("onTime")),
         );
         note.style.fontSize = "90%";
         th.appendChild(note);
@@ -602,21 +718,54 @@
       head.appendChild(th);
       tbody.appendChild(head);
 
-      var stops = [{ name: leg.from.name, arr: null, dep: leg.startTime }];
-      (leg.intermediatePlaces || []).forEach(function (p) {
-        stops.push({ name: p.name, arr: p.arrivalTime, dep: p.departureTime });
+      /* Column names, directly under the band. Without them the two times were
+       * told apart only by an "érk."/"ind." prefix on every single row, while
+       * the table outside spends those same two words on something else. */
+      var cols = el("tr", "cols");
+      [
+        ["thStation", "l"],
+        ["thArr", "r"],
+        ["thDep", "r"],
+      ].forEach(function (c) {
+        cols.appendChild(el("th", c[1], t(c[0])));
       });
-      stops.push({ name: leg.to.name, arr: leg.endTime, dep: null });
+      tbody.appendChild(cols);
+
+      /* Every time here is already the live one, shifted by whatever delay the
+       * train is carrying — but printed bare it was indistinguishable from the
+       * timetable. Each stop now carries its own delay, marked exactly as the
+       * table outside marks it: the scheduled time struck through in red, the
+       * expected one beside it. A train can lose or make up minutes between
+       * stops, so this is per stop, not per train. */
+      var none = { at: null, delay: 0, realTime: false };
+      var stops = [
+        {
+          name: leg.from.name,
+          arr: none,
+          dep: { at: leg.startTime, delay: leg.departureDelay || 0, realTime: !!leg.realTime },
+        },
+      ];
+      (leg.intermediatePlaces || []).forEach(function (p) {
+        stops.push({
+          name: p.name,
+          arr: API.stopTime(p, "arrival"),
+          dep: API.stopTime(p, "departure"),
+        });
+      });
+      stops.push({
+        name: leg.to.name,
+        arr: { at: leg.endTime, delay: leg.arrivalDelay || 0, realTime: !!leg.realTime },
+        dep: none,
+      });
 
       stops.forEach(function (s) {
         var row = document.createElement("tr");
         row.appendChild(el("td", "l", s.name));
-        row.appendChild(
-          el("td", "r", s.arr == null ? "" : t("arrShort") + API.fmtClock(s.arr)),
-        );
-        row.appendChild(
-          el("td", "r", s.dep == null ? "" : t("depShort") + API.fmtClock(s.dep)),
-        );
+        [s.arr, s.dep].forEach(function (x) {
+          var td = el("td", "r");
+          if (x.at != null) td.appendChild(timeCell(x.at, x.delay, x.realTime));
+          row.appendChild(td);
+        });
         tbody.appendChild(row);
       });
 
@@ -821,6 +970,15 @@
     showLoading();
     API.search(q)
       .then(function (rows) {
+        /* An empty result from a station the planner cannot even locate is not
+         * "no train today" — it is a station it will never plan to. Say which,
+         * rather than leaving the user to try other dates forever. */
+        var out = API.unreachable();
+        if (!rows.length && (out.from || out.to)) {
+          var which = out.from && out.to ? q.fromName + " / " + q.toName : out.from ? q.fromName : q.toName;
+          showError(t("outsideNetwork").replace("%s", which));
+          return;
+        }
         lastResults = rows;
         renderResults(rows, q);
       })
@@ -877,7 +1035,16 @@
       }
     });
 
-    loadStations();
+    /* Buses are opt-in. The stop list is fetched the moment the box is cleared,
+     * not on submit, so the names are already there while the user is typing.
+     * The check on load covers a browser restoring the box unticked on reload. */
+    $("csv").addEventListener("change", function () {
+      if (!this.checked) loadRoadStations();
+    });
+
+    loadStations().then(function () {
+      if (roadWanted()) loadRoadStations();
+    });
   }
 
   if (document.readyState === "loading") {

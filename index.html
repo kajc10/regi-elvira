@@ -16,10 +16,10 @@
 <meta property="og:description" content="A régi ELVIRA menetrendi kereső nosztalgia változata, aktuális magyar vasúti menetrenddel és késési adatokkal.">
 <meta property="og:url" content="https://holazelvira.hu/">
 
-<link rel="icon" href="img/favicon.ico">
-<link rel="shortcut icon" href="img/favicon.ico" type="image/ico">
-<link rel="stylesheet" type="text/css" href="css/g.css">
-<link rel="stylesheet" type="text/css" media="print" href="css/p.css">
+<link rel="icon" href="assets/img/favicon.ico">
+<link rel="shortcut icon" href="assets/img/favicon.ico" type="image/ico">
+<link rel="stylesheet" type="text/css" href="assets/css/g.css">
+<link rel="stylesheet" type="text/css" media="print" href="assets/css/p.css">
 
 <style type="text/css">
 	/* --- rules that lived inline in the original page --- */
@@ -69,7 +69,7 @@
 	/* --- MÁV train-category pictogram font, as used by the timetable --- */
 	@font-face {
 		font-family:'MNR2007';
-		src:url('fonts/MNR2007.ttf') format('truetype');
+		src:url('assets/fonts/MNR2007.ttf') format('truetype');
 		font-display:swap;
 	}
 	.MNR2007 {font-family:'MNR2007';font-size:135%;line-height:1;vertical-align:-2px}
@@ -112,6 +112,18 @@
 	.latenew {color:#FF0000;font-weight:bold}
 	.ontime {color:#177A17}
 
+	/* --- detail panel: one band per train, its stops beneath it --- */
+	/* The stylesheet's own .t band is #6E9CC4, the palest blue in it, which reads
+	   as a rule between things rather than as a heading. This is the results
+	   table's header blue instead (div.timetable th) — still the original's, and
+	   the one the eye has just seen directly above the panel. */
+	div.more th.t {background:#3D7AB0;border:1px solid #C5D5E2}
+	/* Red and dark green are both unreadable on it, so the delay note shifts. */
+	div.more .t .latenew {color:#FFE86B}
+	div.more .t .ontime {color:#DCEBF5;font-weight:normal}
+	/* Column names sit under the band and must not compete with it. */
+	div.more tr.cols th {font-size:85%;font-weight:normal;color:#5A5A5A}
+
 	/* --- misc --- */
 	div.timetable td.info {width:24px}
 	div.timetable tr.det td {padding:0;border-top:0}
@@ -142,8 +154,8 @@
 </div>
 
 <div id="languages">
-<a href="#" id="lang-hu"><img src="img/HU.gif" alt="">Magyar</a> |
-<a href="#" id="lang-en"><img src="img/EN.gif" alt="">English</a>
+<a href="#" id="lang-hu"><img src="assets/img/HU.gif" alt="">Magyar</a> |
+<a href="#" id="lang-en"><img src="assets/img/EN.gif" alt="">English</a>
 </div>
 
 <div class="clear"></div>
@@ -425,7 +437,7 @@ Keresési feltételek
 </div>
 
 <div id="searchdrop">
-<img src="img/t.gif" width="1" height="1" alt="">
+<img src="assets/img/t.gif" width="1" height="1" alt="">
 </div>
 
 <div class="clear"></div>
@@ -468,10 +480,10 @@ Keresési feltételek
 </div>
 </div>
 
-<script src="js/i18n.js"></script>
-<script src="js/reduction-en.js"></script>
-<script src="js/api.js"></script>
-<script src="js/elvira.js"></script>
+<script src="assets/js/i18n.js"></script>
+<script src="assets/js/reduction-en.js"></script>
+<script src="assets/js/api.js"></script>
+<script src="assets/js/elvira.js"></script>
 
 </body>
 </html>

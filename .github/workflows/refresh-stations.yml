@@ -1,0 +1,63 @@
+# Keeps data/stations-rail.json and data/stations-road.json in step with MÁV's feed.
+#
+# The lists are generated and committed rather than fetched at runtime, so that
+# typing in the search box needs no network. That means they go stale on their
+# own: 84 stations appeared and 3 disappeared over three days of watching. Once a
+# month is plenty — station names move with the timetable period, not the hour.
+#
+# Scheduled workflows only ever run on the default branch, so this does nothing
+# until it is merged — pushing the branch it was written on arms nothing.
+#
+# It commits straight to whichever branch it ran on. The blast radius is two data
+# files, and build-stations.mjs refuses to write a list that is short in absolute
+# terms or has collapsed against the committed one, exiting non-zero without
+# touching the disk. A failed rebuild therefore fails the run and the commit step
+# never executes; GitHub emails you when a scheduled run fails.
+
+name: Refresh station lists
+
+on:
+  schedule:
+    - cron: "0 3 1 * *" # 03:00 UTC on the 1st of each month
+  workflow_dispatch: # and on demand, from the Actions tab
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-stations
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Rebuild the lists
+        run: node tools/build-stations.mjs
+
+      - name: Commit if anything changed
+        run: |
+          if git diff --quiet -- data/; then
+            echo "MÁV's feed is unchanged since the last run — nothing to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Only the generated data, never anything else that may be lying around.
+          git add data/stations-rail.json data/stations-road.json
+          git commit -m "Refresh station lists from the MÁV feed"
+          # Explicit ref, so this works whether or not checkout left a local branch.
+          git push origin "HEAD:${{ github.ref_name }}"
+
+          echo "### Station lists refreshed" >> "$GITHUB_STEP_SUMMARY"
+          git show --stat --oneline HEAD >> "$GITHUB_STEP_SUMMARY"

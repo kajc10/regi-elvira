@@ -34,7 +34,8 @@ var ELVIRA_I18N = {
     noBusTitle: "A vonatpótló autóbuszos szakaszokat is tartalmazó eljutások elhagyása",
     railOnly: "csak vasúti járat",
     railOnlyTitle:
-      "Csak MÁV és GYSEV vonatok (és vonatpótlóik). Kikapcsolva a BKK, Volán és a helyi járatok is szerepelnek.",
+      "Csak MÁV és GYSEV vonatok (és vonatpótlóik). Kikapcsolva a BKK, Volán és a " +
+      "helyi járatok is szerepelnek, és a megállóik is kereshetővé válnak.",
     submit: "Menetrend",
     back: "Visszaút",
     source: "Forráskód",
@@ -51,9 +52,17 @@ var ELVIRA_I18N = {
     noResults:
       "Ezen a napon nem található eljutási lehetőség a megadott feltételekkel. " +
       "Próbáljon másik napot, vagy kapcsolja ki a keresési feltételeket.",
+    outsideNetwork:
+      "%s a MÁV útvonaltervezőjének hatókörén kívül esik. A menetrendi adatbázis " +
+      "ismeri a külföldi állomásokat, de az útvonaltervezés a határnál véget ér, " +
+      "így nemzetközi eljutás nem kereshető. Próbálja a magyar határállomást " +
+      "(pl. Hegyeshalom, Szob, Lőkösháza).",
     stationsError:
-      "Az állomáslistát nem sikerült betölteni (data/stations.json). " +
+      "Az állomáslistát nem sikerült betölteni (data/stations-rail.json). " +
       "Futtassa: node tools/build-stations.mjs",
+    roadStationsError:
+      "Az autóbusz-megállók listáját nem sikerült betölteni " +
+      "(data/stations-road.json). A vasútállomások továbbra is kereshetők.",
     proxyError:
       "Az adatlekérő proxy nincs beállítva. Nyissa meg a js/api.js fájlt, és írja be " +
       "a saját proxy címét az API_URL változóba (lásd proxy/README.md).",
@@ -74,8 +83,7 @@ var ELVIRA_I18N = {
     now: "most",
     prevDay: "<<< előző nap",
     nextDay: "következő nap >>>",
-    arrShort: "érk. ",
-    depShort: "ind. ",
+    thStation: "Állomás",
     transferTime: "átszállási idő: ",
     minutes: " perc",
     walkTotal: "gyaloglás összesen: ",
@@ -117,7 +125,8 @@ var ELVIRA_I18N = {
     noBusTitle: "Hide journeys that include a rail replacement bus section",
     railOnly: "rail services only",
     railOnlyTitle:
-      "MÁV and GYSEV trains only (plus their replacement coaches). Unchecked, BKK, Volán and local services are included too.",
+      "MÁV and GYSEV trains only (plus their replacement coaches). Unchecked, BKK, " +
+      "Volán and local services are included too, and their stops become searchable.",
     submit: "Timetable",
     back: "Return trip",
     source: "Source code",
@@ -133,9 +142,17 @@ var ELVIRA_I18N = {
     noResults:
       "No connection found on this day with the selected options. " +
       "Try another day, or clear the search options.",
+    outsideNetwork:
+      "%s is outside the reach of MÁV's journey planner. The timetable knows " +
+      "foreign stations, but routing stops at the border, so international " +
+      "journeys cannot be searched. Try the Hungarian border station instead " +
+      "(Hegyeshalom, Szob, Lőkösháza).",
     stationsError:
-      "Could not load the station list (data/stations.json). " +
+      "Could not load the station list (data/stations-rail.json). " +
       "Run: node tools/build-stations.mjs",
+    roadStationsError:
+      "Could not load the bus stop list (data/stations-road.json). " +
+      "Railway stations can still be searched.",
     proxyError:
       "The data proxy is not configured. Open js/api.js and set API_URL to your own " +
       "proxy address (see proxy/README.md).",
@@ -156,8 +173,7 @@ var ELVIRA_I18N = {
     now: "now",
     prevDay: "<<< previous day",
     nextDay: "next day >>>",
-    arrShort: "arr. ",
-    depShort: "dep. ",
+    thStation: "Station",
     transferTime: "transfer time: ",
     minutes: " min",
     walkTotal: "walking in total: ",
